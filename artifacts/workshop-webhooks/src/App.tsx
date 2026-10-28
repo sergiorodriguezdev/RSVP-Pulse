@@ -38,6 +38,7 @@ function Home() {
   const activities = activityQuery.data ?? [];
   const summary = summaryQuery.data;
   const lastActivityId = useRef<number | null>(null);
+  const demoSequence = useRef(0);
   const [celebrate, setCelebrate] = useState<{ eventId: number; name: string; amount: number } | null>(null);
   const [copied, setCopied] = useState(false);
   const [clock, setClock] = useState(() => new Date());
@@ -66,6 +67,12 @@ function Home() {
   }, [activityQuery.data]);
 
   useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('celebrationPreview') !== '1') return;
+    demoSequence.current += 1;
+    setCelebrate({ eventId: -demoSequence.current, name: 'Field Notes: Spring', amount: 3 });
+  }, []);
+
+  useEffect(() => {
     if (!celebrate) return;
     const timeout = window.setTimeout(() => setCelebrate(null), 3200);
     return () => window.clearTimeout(timeout);
@@ -89,6 +96,11 @@ function Home() {
     }
   };
 
+  const previewCelebration = () => {
+    demoSequence.current += 1;
+    setCelebrate({ eventId: -demoSequence.current, name: 'Field Notes: Spring', amount: 3 });
+  };
+
   return (
     <main className="monitor-shell min-h-[100dvh]">
       <header className="topbar">
@@ -97,6 +109,7 @@ function Home() {
           <div><div className="brand-name">gather<span>/</span>watch</div><div className="brand-caption">WORKSHOP RSVP MONITOR</div></div>
         </div>
         <div className="topbar-right">
+          <button className="celebration-demo-button" type="button" onClick={previewCelebration} aria-label="Preview the RSVP celebration animation" title="Preview the RSVP celebration animation"><Sparkles size={14} /><span>Preview celebration</span></button>
           <div className={`connection-pill ${healthQuery.data?.status === 'ok' ? 'is-live' : ''}`}>
             <span className="pulse-dot" />{healthQuery.data?.status === 'ok' ? 'API connected' : healthQuery.isError ? 'Connection issue' : 'Checking connection'}
           </div>
