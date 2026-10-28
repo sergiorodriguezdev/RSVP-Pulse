@@ -39,7 +39,12 @@ function Home() {
   const summary = summaryQuery.data;
   const lastActivityId = useRef<number | null>(null);
   const demoSequence = useRef(0);
-  const [celebrate, setCelebrate] = useState<{ eventId: number; name: string; amount: number } | null>(null);
+  const [celebrate, setCelebrate] = useState<{
+    eventId: number;
+    name: string;
+    amount: number;
+    reason: 'increase' | 'new';
+  } | null>(null);
   const [copied, setCopied] = useState(false);
   const [clock, setClock] = useState(() => new Date());
 
@@ -60,16 +65,23 @@ function Home() {
       .filter((item) => item.id > lastActivityId.current!)
       .sort((a, b) => a.id - b.id);
     lastActivityId.current = Math.max(lastActivityId.current, newestId);
-    const increase = [...newEvents].reverse().find((item) => item.change === 'up');
-    if (increase) {
-      setCelebrate({ eventId: increase.id, name: increase.workshopName, amount: increase.changeAmount });
+    const celebrationEvent = [...newEvents].reverse().find(
+      (item) => item.change === 'up' || item.change === 'new',
+    );
+    if (celebrationEvent) {
+      setCelebrate({
+        eventId: celebrationEvent.id,
+        name: celebrationEvent.workshopName,
+        amount: celebrationEvent.change === 'new' ? celebrationEvent.rsvps : celebrationEvent.changeAmount,
+        reason: celebrationEvent.change === 'new' ? 'new' : 'increase',
+      });
     }
   }, [activityQuery.data]);
 
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get('celebrationPreview') !== '1') return;
     demoSequence.current += 1;
-    setCelebrate({ eventId: -demoSequence.current, name: 'Field Notes: Spring', amount: 3 });
+    setCelebrate({ eventId: -demoSequence.current, name: 'Field Notes: Spring', amount: 24, reason: 'new' });
   }, []);
 
   useEffect(() => {
@@ -98,7 +110,7 @@ function Home() {
 
   const previewCelebration = () => {
     demoSequence.current += 1;
-    setCelebrate({ eventId: -demoSequence.current, name: 'Field Notes: Spring', amount: 3 });
+    setCelebrate({ eventId: -demoSequence.current, name: 'Field Notes: Spring', amount: 24, reason: 'new' });
   };
 
   return (
@@ -140,7 +152,12 @@ function Home() {
           </div>
           <div className="celebration" key={`toast-${celebrate.eventId}`} role="status">
             <span className="celebration-icon"><Sparkles size={16} /></span>
-            <div><strong>RSVPs are climbing.</strong><span>{celebrate.name} is up by {celebrate.amount}.</span></div>
+            <div>
+              <strong>{celebrate.reason === 'new' ? 'A new workshop joined.' : 'RSVPs are climbing.'}</strong>
+              <span>{celebrate.reason === 'new'
+                ? `${celebrate.name} joined with ${celebrate.amount.toLocaleString()} ${celebrate.amount === 1 ? 'RSVP' : 'RSVPs'}.`
+                : `${celebrate.name} is up by ${celebrate.amount.toLocaleString()}.`}</span>
+            </div>
             <button aria-label="Dismiss update" onClick={() => setCelebrate(null)} data-testid="button-dismiss-celebration"><X size={16} /></button>
           </div>
         </>}
