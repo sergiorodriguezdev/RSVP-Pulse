@@ -38,7 +38,7 @@ function Home() {
   const activities = activityQuery.data ?? [];
   const summary = summaryQuery.data;
   const lastActivityId = useRef<number | null>(null);
-  const [celebrate, setCelebrate] = useState<{ name: string; amount: number } | null>(null);
+  const [celebrate, setCelebrate] = useState<{ eventId: number; name: string; amount: number } | null>(null);
   const [copied, setCopied] = useState(false);
   const [clock, setClock] = useState(() => new Date());
 
@@ -50,18 +50,19 @@ function Home() {
   useEffect(() => {
     if (!activityQuery.data) return;
     const newestId = Math.max(0, ...activityQuery.data.map((item) => item.id));
-    if (lastActivityId.current !== null) {
-      const increase = activityQuery.data.find(
-        (item) => item.id > lastActivityId.current! && item.change === 'up',
-      );
-      if (increase) {
-        setCelebrate({ name: increase.workshopName, amount: increase.changeAmount });
-        lastActivityId.current = Math.max(lastActivityId.current, newestId);
-        return;
-      }
+    if (lastActivityId.current === null) {
+      lastActivityId.current = newestId;
+      return;
     }
-    lastActivityId.current = Math.max(lastActivityId.current ?? newestId, newestId);
-    return undefined;
+
+    const newEvents = activityQuery.data
+      .filter((item) => item.id > lastActivityId.current!)
+      .sort((a, b) => a.id - b.id);
+    lastActivityId.current = Math.max(lastActivityId.current, newestId);
+    const increase = [...newEvents].reverse().find((item) => item.change === 'up');
+    if (increase) {
+      setCelebrate({ eventId: increase.id, name: increase.workshopName, amount: increase.changeAmount });
+    }
   }, [activityQuery.data]);
 
   useEffect(() => {
@@ -113,7 +114,23 @@ function Home() {
           <div className="live-note"><span className="live-note-dot" /><span>LIVE FROM WORKSHOP GATHER</span><span className="live-divider" /><RefreshCw size={12} className="sync-icon" /> 15 SEC</div>
         </section>
 
-        {celebrate && <div className="celebration" role="status"><span className="celebration-icon"><Sparkles size={16} /></span><div><strong>RSVPs are climbing.</strong><span>{celebrate.name} is up by {celebrate.amount}.</span></div><button aria-label="Dismiss update" onClick={() => setCelebrate(null)} data-testid="button-dismiss-celebration"><X size={16} /></button></div>}
+        {celebrate && <>
+          <div className="celebration-confetti" key={`confetti-${celebrate.eventId}`} aria-hidden="true">
+            {Array.from({ length: 28 }, (_, index) => <i
+              key={index}
+              style={{
+                left: `${(index * 37 + 8) % 100}%`,
+                animationDelay: `${(index % 8) * 45}ms`,
+                backgroundColor: ['#4b9b76', '#efad57', '#e77865', '#6f93b7', '#a78ac3'][index % 5],
+              }}
+            />)}
+          </div>
+          <div className="celebration" key={`toast-${celebrate.eventId}`} role="status">
+            <span className="celebration-icon"><Sparkles size={16} /></span>
+            <div><strong>RSVPs are climbing.</strong><span>{celebrate.name} is up by {celebrate.amount}.</span></div>
+            <button aria-label="Dismiss update" onClick={() => setCelebrate(null)} data-testid="button-dismiss-celebration"><X size={16} /></button>
+          </div>
+        </>}
 
         <section className="summary-grid" aria-label="Workshop overview">
           <div className="summary-card summary-primary">
