@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Workshop RSVP Monitor"
+description = "A webhook-powered dashboard for receiving Workshop Gather RSVP updates, tracking the latest count and update time per workshop, and highlighting increases or decreases."
+version = "1.0.0"
+id = "artifacts/workshop-webhooks"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19668
+
+[services.development]
+run = "pnpm --filter @workspace/workshop-webhooks run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/workshop-webhooks", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/workshop-webhooks/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19668"
+BASE_PATH = "/"

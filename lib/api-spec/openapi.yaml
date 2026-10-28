@@ -10,6 +10,10 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: workshops
+    description: Workshop RSVP data
+  - name: webhooks
+    description: Incoming Workshop Gather webhooks
 paths:
   /healthz:
     get:
@@ -24,7 +28,79 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /workshops:
+    get:
+      operationId: listWorkshops
+      tags: [workshops]
+      summary: List workshops and their latest RSVP counts
+      responses:
+        "200":
+          description: Current workshop counts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Workshop"
+  /workshops/summary:
+    get:
+      operationId: getWorkshopSummary
+      tags: [workshops]
+      summary: Get dashboard totals
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkshopSummary"
+  /workshops/activity:
+    get:
+      operationId: listWorkshopActivity
+      tags: [workshops]
+      summary: List recent RSVP changes
+      responses:
+        "200":
+          description: Recent webhook activity
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WorkshopActivity"
+  /webhooks/workshop-gather:
+    post:
+      operationId: receiveWorkshopGatherWebhook
+      tags: [webhooks]
+      summary: Receive an RSVP update from Workshop Gather
+      description: Requires the configured shared secret in the X-Webhook-Secret header.
+      security:
+        - WorkshopWebhookSecret: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkshopGatherUpdate"
+      responses:
+        "200":
+          description: Update received and stored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkshopWebhookResult"
+        "400":
+          description: Invalid update
+        "401":
+          description: Missing or incorrect webhook secret
+        "503":
+          description: Webhook secret has not been configured
 components:
+  securitySchemes:
+    WorkshopWebhookSecret:
+      type: apiKey
+      in: header
+      name: X-Webhook-Secret
   schemas:
     HealthStatus:
       type: object
@@ -33,4 +109,92 @@ components:
           type: string
       required:
         - status
+    WorkshopGatherUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        workshopName:
+          type: string
+          minLength: 1
+          maxLength: 200
+        rsvps:
+          type: integer
+          minimum: 0
+        updatedAt:
+          type: string
+          format: date-time
+      required: [workshopName, rsvps, updatedAt]
+    Workshop:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        rsvps:
+          type: integer
+        updatedAt:
+          type: string
+          format: date-time
+        previousRsvps:
+          type: ["integer", "null"]
+        change:
+          type: string
+          enum: [up, down, unchanged, new]
+        changeAmount:
+          type: integer
+      required: [id, name, rsvps, updatedAt, previousRsvps, change, changeAmount]
+    WorkshopSummary:
+      type: object
+      properties:
+        workshopCount:
+          type: integer
+        totalRsvps:
+          type: integer
+        updatesToday:
+          type: integer
+        lastUpdatedAt:
+          type: ["string", "null"]
+          format: date-time
+      required: [workshopCount, totalRsvps, updatesToday, lastUpdatedAt]
+    WorkshopActivity:
+      type: object
+      properties:
+        id:
+          type: integer
+        workshopName:
+          type: string
+        previousRsvps:
+          type: ["integer", "null"]
+        rsvps:
+          type: integer
+        change:
+          type: string
+          enum: [up, down, unchanged, new]
+        changeAmount:
+          type: integer
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, workshopName, previousRsvps, rsvps, change, changeAmount, updatedAt]
+    WorkshopWebhookResult:
+      type: object
+      properties:
+        accepted:
+          type: boolean
+        workshopName:
+          type: string
+        previousRsvps:
+          type: ["integer", "null"]
+        rsvps:
+          type: integer
+        change:
+          type: string
+          enum: [up, down, unchanged, new]
+        changeAmount:
+          type: integer
+        updatedAt:
+          type: string
+          format: date-time
+      required: [accepted, workshopName, previousRsvps, rsvps, change, changeAmount, updatedAt]
 
