@@ -79,6 +79,7 @@ function Home() {
   }, [activityQuery.data]);
 
   useEffect(() => {
+    if (!import.meta.env.DEV) return;
     if (new URLSearchParams(window.location.search).get('celebrationPreview') !== '1') return;
     demoSequence.current += 1;
     setCelebrate({ eventId: -demoSequence.current, name: 'Field Notes: Spring', amount: 24, reason: 'new' });
@@ -121,7 +122,7 @@ function Home() {
           <div><div className="brand-name">gather<span>/</span>watch</div><div className="brand-caption">WORKSHOP RSVP MONITOR</div></div>
         </div>
         <div className="topbar-right">
-          <button className="celebration-demo-button" type="button" onClick={previewCelebration} aria-label="Preview the RSVP celebration animation" title="Preview the RSVP celebration animation"><Sparkles size={14} /><span>Preview celebration</span></button>
+          {import.meta.env.DEV && <button className="celebration-demo-button" type="button" onClick={previewCelebration} aria-label="Preview the RSVP celebration animation" title="Preview the RSVP celebration animation"><Sparkles size={14} /><span>Preview celebration</span></button>}
           <div className={`connection-pill ${healthQuery.data?.status === 'ok' ? 'is-live' : ''}`}>
             <span className="pulse-dot" />{healthQuery.data?.status === 'ok' ? 'API connected' : healthQuery.isError ? 'Connection issue' : 'Checking connection'}
           </div>
